@@ -9,8 +9,8 @@ id;categoria;nome;descricao;preco;imagem;imagem_url;ativo;obs1;obs2
 8;Entrada;Camarão Tetê;Camarões empanados com cream cheese;54;camarao-tete.jpg;;1;;
 9;Entrada;Salada Proteica;Mix de folhas com filé mignon e parmesão;38;salada-proteica.jpg;;1;;
 10;Entrada;Rolinho de Salmão;4 unidades com arroz, cream cheese e salmão;31;rolinho-de-salmao.jpg;;1;;
-11;Entrada;Panelinha de Filé;Filé com batata e cebola roxa;39;panelinha-de-file.jpg;;1;;
-12;Entrada;Panelinha Teixeira;Filé com molho e pão italiano;45;panelinha-teixeira.jpg;;1;;
+11;Entrada;Panelinha de Filé;Filé com molho e pão italiano;39;panelinha-de-file.jpg;;1;;
+12;Entrada;Panelinha Teixeira;Filé com batata e cebola roxa;45;panelinha-teixeira.jpg;;1;;
 13;Entrada;Crispy de Queijo Gouda;Queijo empanado com geleia;33;crispy-de-queijo-gouda.jpg;;1;;
 14;Individual;Salmão Imperial;Salmão grelhado com acompanhamentos;77.00;salmao-imperial.jpg;;1;;
 15;Individual;Massa Filé Mignon;Filé com massa grano duro;74.00;file-mignon-massa.jpg;;1;2;3
