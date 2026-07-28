@@ -114,14 +114,19 @@
         }
         .item-card { display: flex; gap: 12px; padding: 16px 0; border-bottom: 1px solid var(--border-card); align-items: flex-start; background: var(--card-bg); }
         .item-info { flex: 1; }
-        .item-badge { display: inline-block; font-size: 10px; font-weight: 700; color: var(--text-badge); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 4px; }
-        .item-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--text); }
+        .item-badge { display: block; font-size: 10px; font-weight: 700; color: var(--text-badge); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+        .item-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--text); margin-top: 0; }
         .item-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
-        .item-price { font-weight: 700; color: var(--text-price); font-size: 14px; line-height: 1; }
-        .item-price-row { display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+        .item-price { font-weight: 700; color: var(--text-price); font-size: 14px; line-height: 1; margin-top: 8px; }
+        .item-price-row { margin-top: 8px; }
 
-        /* === BOTÃO ADICIONAR === */
-        .btn-add { background: var(--bg-header); color: #fff; border: none; width: 24px; height: 24px; border-radius: 6px; font-size: 16px; cursor: pointer; flex-shrink: 0; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; }
+        /* Área clicável nome + preço substitui o botão + */
+        .item-info-clickable {
+            cursor: pointer; border-radius: 8px;
+            padding: 4px 6px; margin: -4px -6px;
+            transition: background .15s; display: inline-block;
+        }
+        .item-info-clickable:active { background: var(--green-100); }
         .item-img {
             width: 90px; height: 90px; border-radius: 14px; object-fit: cover;
             aspect-ratio: 1 / 1; flex-shrink: 0; cursor: pointer;
@@ -581,12 +586,14 @@
                 html+=`<div class="item-card">
                     <div class="item-info">
                         ${badge}
-                        <div class="item-name">${escapeHTML(nomeItem)}</div>
-                        <div class="item-desc">${escapeHTML(item.descricaosimples||item.descricao||'')}</div>
-                        <div class="item-price-row">
-                            <span class="item-price">R$ ${p.toFixed(2).replace('.',',')}</span>
-                            <button class="btn-add" aria-label="Adicionar ${escapeHTML(nomeItem)}"
-                                onclick="tryAddToCart('${jsArg(itemId)}','${jsArg(nomeItem)}',${p},'${jsArg(item.obs1||'')}','${jsArg(item.obs2||'')}','${imgArg}')">+</button>
+                        <div class="item-info-clickable"
+                            onclick="tryAddToCart('${jsArg(itemId)}','${jsArg(nomeItem)}',${p},'${jsArg(item.obs1||'')}','${jsArg(item.obs2||'')}','${jsArg(item.obs3||'')}','${imgArg}')"
+                            role="button" aria-label="Adicionar ${escapeHTML(nomeItem)} ao carrinho">
+                            <div class="item-name">${escapeHTML(nomeItem)}</div>
+                            <div class="item-desc">${escapeHTML(item.descricaosimples||item.descricao||'')}</div>
+                            <div class="item-price-row">
+                                <span class="item-price">R$ ${p.toFixed(2).replace('.',',')}</span>
+                            </div>
                         </div>
                     </div>
                     <img src="${imgSrc}" class="item-img" alt="${escapeHTML(nomeItem)}" loading="lazy"
@@ -631,16 +638,22 @@
 
     // ─── OBS groups ───────────────────────────────────────────────────────────
     const OBS_GROUPS = {
-        '1':{label:'P. ARROZ', opcoes:['AL DENTE','BEM COZIDO']},
-        '2':{label:'P. CARNE', opcoes:['MAL PASSADO','AO PONTO','BEM PASSADO']},
-        '3':{label:'T. MASSA', opcoes:['ESPAGUETE','TALHARIM','PAPPARDELLE']},
+        '1':{label:'P. ARROZ',   opcoes:['AL DENTE','BEM COZIDO']},
+        '2':{label:'P. CARNE',   opcoes:['MAL PASSADO','AO PONTO','BEM PASSADO']},
+        '3':{label:'T. MASSA',   opcoes:['ESPAGUETE','TALHARIM','PAPPARDELLE']},
+        '4':{label:'T. MOLHO',   opcoes:['BECHAMEL','POMODORO','ROQUEFORT']},
+        '5':{label:'ACOMP.',     opcoes:['ARROZ BRANCO','BATATA SAUTE','LEGUMES VAPORIZADOS']},
+        '6':{label:'AÇÚCAR',     opcoes:['COM AÇÚCAR','SEM AÇÚCAR']},
+        '7':{label:'SABOR SODA', opcoes:['LIMÃO SICILIANO','MAÇÃ VERDE','FRUTAS VERMELHAS']},
+        '8':{label:'SABOR',      opcoes:['CARNE DE SOL','CAMARÃO']},
+        '9':{label:'SOBREMESA',  opcoes:['TAÇA SALES','BOLO MATILDA','POTINHO LIZ','ENTREMET AURORA']},
     };
 
     // ─── Carrinho ──────────────────────────────────────────────────────────────
     function updateCart(id,nome,p,d){
         const idx=cart.findIndex(i=>i.id===id);
         if(idx>-1){cart[idx].qtd+=d;if(cart[idx].qtd<=0)cart.splice(idx,1);}
-        else if(d>0){const m=menuData.find(m=>(m.id||m.nome)===id)||{};cart.push({id,nome,preco:p,qtd:1,obs1_grupo:(m.obs1||'').trim(),obs2_grupo:(m.obs2||'').trim(),obs1_val:'',obs2_val:''});}
+        else if(d>0){const m=menuData.find(m=>(m.id||m.item||m.nome)===id)||{};cart.push({id,nome,preco:p,qtd:1,obs1_grupo:(m.obs1||'').trim(),obs2_grupo:(m.obs2||'').trim(),obs3_grupo:(m.obs3||'').trim(),obs1_val:'',obs2_val:'',obs3_val:''});}
         try{localStorage.setItem('cart_saved',JSON.stringify(cart));}catch(e){}
         updateUI();
     }
@@ -656,7 +669,7 @@
         const list=document.getElementById('modalItemsList');
         if(!cart.length){list.innerHTML='<p style="text-align:center;color:var(--text-muted);">Vazio</p>';document.getElementById('mTotal').textContent='R$ 0,00';return;}
         list.innerHTML=cart.map(i=>{
-            const tags=[i.obs1_val,i.obs2_val].filter(Boolean);
+            const tags=[i.obs1_val,i.obs2_val,i.obs3_val].filter(Boolean);
             const tagsHtml=tags.length?`<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;">${tags.map(t=>`<span style="background:var(--bg-header);color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;">${escapeHTML(t)}</span>`).join('')}</div>`:'';
             return `<div class="modal-item" style="flex-direction:column;align-items:stretch;"><div style="display:flex;justify-content:space-between;align-items:center;"><div style="flex:1"><b>${escapeHTML(i.nome)}</b><br><small>R$ ${i.preco.toFixed(2).replace('.',',')}</small>${tagsHtml}</div><div class="qty-box"><button class="btn-qty" onclick="updateCart('${jsArg(i.id)}','${jsArg(i.nome)}',${i.preco},-1)">-</button><span>${i.qtd}</span><button class="btn-qty" onclick="updateCart('${jsArg(i.id)}','${jsArg(i.nome)}',${i.preco},1)">+</button></div></div></div>`;
         }).join('');
@@ -730,7 +743,7 @@
         if(selectedBairro!=="Retirada"&&!e) return alert("Por favor, informe o endereço de entrega.");
         if(!cart.length) return alert("Seu carrinho está vazio.");
         localStorage.setItem('user_name',n); if(e) localStorage.setItem('user_address',e);
-        const itens=cart.map(i=>{let l=`*${i.qtd}x* ${i.nome}`;const ex=[i.obs1_val,i.obs2_val].filter(Boolean);if(ex.length)l+=` _(${ex.join(' · ')})_`;return l;}).join('\n');
+        const itens=cart.map(i=>{let l=`*${i.qtd}x* ${i.nome}`;const ex=[i.obs1_val,i.obs2_val,i.obs3_val].filter(Boolean);if(ex.length)l+=` _(${ex.join(' · ')})_`;return l;}).join('\n');
         const total=cart.reduce((a,i)=>a+(i.preco*i.qtd),0)+deliveryFee, sub=total-deliveryFee;
         let msg=`*NOVO PEDIDO - BENEDITO'S*\n*Cliente:* ${n}\n*Tipo:* ${selectedBairro}\n\n${itens}\n\n*Subtotal:* R$ ${sub.toFixed(2).replace('.',',')}`;
         if(deliveryFee>0) msg+=`\n*Taxa de entrega:* R$ ${deliveryFee.toFixed(2).replace('.',',')}`;
@@ -756,10 +769,10 @@
     function closePhotoModal(){document.getElementById('photoModal').classList.remove('active');}
 
     let _obsState=null;
-    function tryAddToCart(id,nome,preco,obs1g,obs2g,imgSrc){
-        const hasObs=(obs1g&&OBS_GROUPS[obs1g])||(obs2g&&OBS_GROUPS[obs2g]);
+    function tryAddToCart(id,nome,preco,obs1g,obs2g,obs3g,imgSrc){
+        const hasObs=(obs1g&&OBS_GROUPS[obs1g])||(obs2g&&OBS_GROUPS[obs2g])||(obs3g&&OBS_GROUPS[obs3g]);
         if(!hasObs){updateCart(id,nome,preco,1);return;}
-        _obsState={id,nome,preco,obs1g,obs2g,obs1v:'',obs2v:''};
+        _obsState={id,nome,preco,obs1g,obs2g,obs3g,obs1v:'',obs2v:'',obs3v:''};
         document.getElementById('obsModalName').textContent=nome;
         document.getElementById('obsModalPrice').textContent=`R$ ${preco.toFixed(2).replace('.',',')}`;
         const th=document.getElementById('obsModalThumb');th.src=imgSrc||'';th.style.display=imgSrc?'block':'none';
@@ -767,8 +780,8 @@
     }
     function renderObsGroups(){
         if(!_obsState) return;
-        const {obs1g,obs2g,obs1v,obs2v}=_obsState; let html='';
-        [['obs1',obs1g,obs1v],['obs2',obs2g,obs2v]].forEach(([key,grpId,val])=>{
+        const {obs1g,obs2g,obs3g,obs1v,obs2v,obs3v}=_obsState; let html='';
+        [['obs1',obs1g,obs1v],['obs2',obs2g,obs2v],['obs3',obs3g,obs3v]].forEach(([key,grpId,val])=>{
             if(!grpId||!OBS_GROUPS[grpId]) return;
             const grp=OBS_GROUPS[grpId];
             const btns=grp.opcoes.map(op=>`<button class="obs-btn ${op===val?'selected':''}" onclick="toggleObsChoice('${key}','${jsArg(op)}')">${escapeHTML(op)}</button>`).join('');
@@ -779,10 +792,10 @@
     function toggleObsChoice(key,valor){if(!_obsState)return;const k=key+'v';_obsState[k]=_obsState[k]===valor?'':valor;renderObsGroups();}
     function confirmObsAndAdd(){
         if(!_obsState) return;
-        const {id,nome,preco,obs1g,obs2g,obs1v,obs2v}=_obsState;
+        const {id,nome,preco,obs1g,obs2g,obs3g,obs1v,obs2v,obs3v}=_obsState;
         const idx=cart.findIndex(i=>i.id===id);
-        if(idx>-1){cart[idx].qtd+=1;cart[idx].obs1_val=obs1v;cart[idx].obs2_val=obs2v;}
-        else cart.push({id,nome,preco,qtd:1,obs1_grupo:obs1g,obs2_grupo:obs2g,obs1_val:obs1v,obs2_val:obs2v});
+        if(idx>-1){cart[idx].qtd+=1;cart[idx].obs1_val=obs1v;cart[idx].obs2_val=obs2v;cart[idx].obs3_val=obs3v;}
+        else cart.push({id,nome,preco,qtd:1,obs1_grupo:obs1g,obs2_grupo:obs2g,obs3_grupo:obs3g,obs1_val:obs1v,obs2_val:obs2v,obs3_val:obs3v});
         _obsState=null; closeObsModal(); updateUI();
     }
     function closeObsModal(){document.getElementById('obsModal').classList.remove('active');_obsState=null;}
