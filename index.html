@@ -129,6 +129,15 @@
         }
         .item-info { flex: 1; }
         .item-badge { display: block; font-size: 10px; font-weight: 700; color: var(--text-badge); text-transform: uppercase; letter-spacing: 0.06em; margin-bottom: 2px; }
+        /* Aviso de item temporariamente indisponível */
+        .item-unavailable {
+            display: inline-flex; align-items: center; gap: 4px;
+            font-size: 10px; font-weight: 700;
+            background: #fff3cd; color: #856404;
+            border: 1px solid #ffc107;
+            padding: 2px 9px; border-radius: 20px;
+            margin-top: 6px; letter-spacing: .03em;
+        }
         .item-name { font-weight: 600; font-size: 15px; margin-bottom: 4px; color: var(--text); margin-top: 0; }
         .item-desc { font-size: 12px; color: var(--text-muted); line-height: 1.4; }
         .item-price { font-weight: 700; color: var(--text-price); font-size: 14px; line-height: 1; margin-top: 8px; }
@@ -382,6 +391,15 @@
         <div id="trocoBox" class="troco-box">
             <input type="number" id="userTroco" class="modal-input" placeholder="Troco para quanto?">
         </div>
+        <div style="margin-bottom:16px;">
+            <label style="font-size:11px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:6px;">
+                Observação do Pedido
+            </label>
+            <textarea id="userObs" class="modal-input"
+                rows="3"
+                placeholder="Ex: sem gelo, sem cebola no lanche, tocar campainha..."
+                style="resize:none;margin:0;line-height:1.5;font-size:13px;"></textarea>
+        </div>
         <button class="btn-send" onclick="sendOrder()">Finalizar e Enviar Pedido</button>
         <p onclick="toggleModal(false)" style="text-align:center; color:var(--text-muted); margin-top:20px; font-size:13px; cursor:pointer;">Voltar ao cardápio</p>
     </div>
@@ -573,8 +591,10 @@
     function renderMenu() {
         const c = document.getElementById('menuContainer');
         if (!menuData.length) return;
-        // ativo: vazio ou '1' = visível; '0' = oculto
-        const ativos = menuData.filter(i=>String(i.ativo??'').trim()!=='0');
+        // index.html: usa coluna 'ativo' — ativo=1 aparece, ativo=0 oculto
+        const ativos = menuData.filter(i=>{
+            return String(i.ativo??'1').trim() === '1';
+        });
         const cats = [...new Set(ativos.map(i=>i.grupo||i.categoria||''))];
         let html = '<div class="categories">';
         cats.forEach((cat,idx)=>{
@@ -591,6 +611,11 @@
                 const rawUrl = (item.imagem_url||'').trim();
                 const nomeItem=item.item||item.nome||'';
                 const imgSrc = rawUrl ? escapeHTML(fixGDriveUrl(rawUrl)) : `imagens/${escapeHTML(item.imagem)}`;
+                // indisponível: ativoC já filtrou os ocultos; ativo=0 = visível mas indisponível
+                const indisponivel = String(item.ativo??'1').trim() === '0';
+                const unavailableBadge = indisponivel
+                    ? `<div class="item-unavailable">⚠️ Indisponível no momento</div>`
+                    : '';
                 const imgArg = rawUrl ? jsArg(fixGDriveUrl(rawUrl)) : `imagens/${jsArg(item.imagem)}`;
                 // SubGrupo e Regiao como badge (colunas novas do CSV)
                 const subgrupo=(item.subgrupo||item.SubGrupo||'').trim();
@@ -600,18 +625,19 @@
                 html+=`<div class="item-card" data-item-id="${escapeHTML(itemId)}">
                     <div class="item-info">
                         ${badge}
-                        <div class="item-info-clickable"
-                            onclick="tryAddToCart('${jsArg(itemId)}','${jsArg(nomeItem)}',${p},'${jsArg(item.obs1||'')}','${jsArg(item.obs2||'')}','${jsArg(item.obs3||'')}','${imgArg}')"
-                            role="button" aria-label="Adicionar ${escapeHTML(nomeItem)} ao carrinho">
+                        <div class="${indisponivel ? '' : 'item-info-clickable'}"
+                            ${indisponivel ? '' : `onclick="tryAddToCart('${jsArg(itemId)}','${jsArg(nomeItem)}',${p},'${jsArg(item.obs1||'')}','${jsArg(item.obs2||'')}','${jsArg(item.obs3||'')}','${imgArg}')" role="button" aria-label="Adicionar ${escapeHTML(nomeItem)} ao carrinho"`}>
                             <div class="item-name">${escapeHTML(nomeItem)}</div>
                             <div class="item-desc">${escapeHTML(item.descricaosimples||item.descricao||'')}</div>
                             <div class="item-price-row">
-                                <span class="item-price">R$ ${p.toFixed(2).replace('.',',')}</span>
+                                <span class="item-price" style="${indisponivel?'color:var(--text-muted);text-decoration:line-through':''}">${indisponivel?'':''}R$ ${p.toFixed(2).replace('.',',')}</span>
                             </div>
+                            ${unavailableBadge}
                         </div>
                     </div>
                     <img src="${imgSrc}" class="item-img" alt="${escapeHTML(nomeItem)}" loading="lazy"
                          onload="this.classList.add('loaded')" onerror="this.style.display='none'"
+                         style="${indisponivel?'filter:grayscale(.6);opacity:.7':''}"
                          onclick="openPhotoModal('${imgArg}','${jsArg(nomeItem)}','${jsArg(item.descricaocompleta||item.descricaosimples||item.descricao||'')}')">
                 </div>`;
             });
@@ -723,7 +749,7 @@
         document.getElementById('pixBox').classList.toggle('active',pay==='Pix');
         if(pay==='Pix') updateUI();
         const closed=!isStoreOpen();
-        ['userName','userBairro','userAddress','userPayment','userTroco'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=closed;});
+        ['userName','userBairro','userAddress','userPayment','userTroco','userObs'].forEach(id=>{const e=document.getElementById(id);if(e)e.disabled=closed;});
         const btn=document.querySelector('.btn-send');
         if(btn){btn.disabled=closed;btn.style.opacity=closed?'0.45':'1';btn.style.cursor=closed?'not-allowed':'pointer';btn.textContent=closed?'🔴 Restaurante Fechado':'Finalizar e Enviar Pedido';}
     }
@@ -781,17 +807,39 @@
         if(selectedBairro!=="Retirada"&&!e) return alert("Por favor, informe o endereço de entrega.");
         if(!cart.length) return alert("Seu carrinho está vazio.");
         localStorage.setItem('user_name',n); if(e) localStorage.setItem('user_address',e);
-        const itens=cart.map(i=>{let l=`*${i.qtd}x* ${i.nome}`;const ex=[i.obs1_val,i.obs2_val,i.obs3_val].filter(Boolean);if(ex.length)l+=` _(${ex.join(' · ')})_`;return l;}).join('\n');
-        const total=cart.reduce((a,i)=>a+(i.preco*i.qtd),0)+deliveryFee, sub=total-deliveryFee;
-        let msg=`*NOVO PEDIDO - BENEDITO'S*\n*Cliente:* ${n}\n*Tipo:* ${selectedBairro}\n\n${itens}\n\n*Subtotal:* R$ ${sub.toFixed(2).replace('.',',')}`;
-        if(deliveryFee>0) msg+=`\n*Taxa de entrega:* R$ ${deliveryFee.toFixed(2).replace('.',',')}`;
-        msg+=`\n*Total:* R$ ${total.toFixed(2).replace('.',',')}\n*Pagamento:* ${p}`;
-        if(p==='Pix') msg+=`\n⚠️ *PAGAMENTO VIA PIX (Aguardando comprovante)*`;
-        const troco=document.getElementById('userTroco').value.trim().replace(',','.');
-        if(p==='Dinheiro'&&troco&&!isNaN(parseFloat(troco))) msg+=`\n💵 *Troco para:* R$ ${parseFloat(troco).toFixed(2).replace('.',',')}`;
-        if(selectedBairro!=="Retirada"&&e) msg+=`\n*Endereço:* ${e}`;
+
+        const itens = cart.map(i=>{
+            let l=`${i.qtd}x ${i.nome}`;
+            const ex=[i.obs1_val,i.obs2_val,i.obs3_val].filter(Boolean);
+            if(ex.length) l+=` (${ex.join(' / ')})`;
+            return l;
+        }).join('\n');
+
+        const sub   = cart.reduce((a,i)=>a+(i.preco*i.qtd),0);
+        const total = sub + deliveryFee;
+        const tipo  = selectedBairro === 'Retirada' ? 'Retirada' : 'Entrega';
+        const troco = document.getElementById('userTroco').value.trim().replace(',','.');
+        const obs   = sanitize(document.getElementById('userObs')?.value||'').trim();
+
+        let msg = `NOVO PEDIDO - BENEDITO'S`;
+        msg += `\nCliente: ${n}`;
+        msg += `\nTipo: ${tipo}`;
+        if(selectedBairro!=="Retirada"&&e){
+            msg += `\nEndereço: ${e}`;
+            msg += `\nBairro: ${selectedBairro}`;
+        }
+        msg += `\n\n${itens}`;
+        msg += `\n\nSubtotal: R$ ${sub.toFixed(2).replace('.',',')}`;
+        if(deliveryFee>0) msg += `\nTaxa de entrega: R$ ${deliveryFee.toFixed(2).replace('.',',')}`;
+        msg += `\nTotal: R$ ${total.toFixed(2).replace('.',',')}`;
+        msg += `\nPagamento: ${p}`;
+        if(p==='Pix')     msg += `\nPAGAMENTO VIA PIX (Aguardando comprovante)`;
+        if(p==='Dinheiro'&&troco&&!isNaN(parseFloat(troco)))
+            msg += `\nTroco para: R$ ${parseFloat(troco).toFixed(2).replace('.',',')}`;
+        msg += `\nObs: ${obs}`;
+
+        localStorage.removeItem('cart_saved');
         window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(msg)}`);
-        // Limpa carrinho após envio
         cart = [];
         try { localStorage.removeItem('cart_saved'); } catch(e) {}
         toggleModal(false);
